@@ -9,5 +9,5 @@
 
 ## 참여자
 * dh1010a
-* wana
+* KangHana
 
