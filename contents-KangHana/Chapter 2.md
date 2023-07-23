@@ -134,3 +134,100 @@ List<Apple> heavyApples = filterApplesByColor(inventory, null, 150, false);
 <br>
 
 ## ■ 2. 동작 파라미터화
+
+사과의 어떤 속성에 기초해 불리언값을 반환하는 방법을 써서 선택 조건을 결정하는 인터페이스를 정의할 수 있습니다. 이처럼 참 또는 거짓을 반환하는 함수를 **프레디케이트**라고 합니다.
+
+```java
+public interface ApplePredicate {
+  boolean test (Apple apple);
+}
+```
+
+그리고 이 인터페이스를 이용해 다양한 선택 조건을 대표하는 여러 버전의 ApplePredicate를 정의할 수 있습니다.
+
+```java
+public class AppleHeavyWeightPredicate implements ApplePredicate {
+  public boolean test(Apple apple) {
+    return apple.getWeight() > 150;
+  }
+}
+
+public class AppleGreenColorPredicate implements ApplePredicate {
+  public boolean test(Apple apple) {
+    return GREEN.equals(apple.getColor());
+  }
+}
+```
+
+위 조건에 따라 filter 메소드가 다르게 동작할 것이라고 예상할 수 있습니다. 이를 전략 디자인 패턴이라고 부릅니다.
+
+> 전략디자인 패턴이란, 실행중 알고리즘을 선택할 수 있게 하는 행위 소프트웨어 디자인 패턴입니다.
+>
+> 1. 특정 계열의 알고리즘을 정의합니다
+> 2. 각 알고리즘을 캡슐화 하는 알고리즘 패밀리를 정의합니다.
+> 3. 런타임에 알고리즘을 선택합니다 >> 이때 해당 계열 안에서 상호 교체가 가능합니다.
+>
+> \_ 출처 : 전략패턴 위키피디아
+
+즉 위 예제에서 ApplePredicate가 알고리즘 패밀리이고, AppleHeavyWeightPredicate와 AppleGreenColorPredicate가 전략입니다.
+
+ApplePredicate는 filterApples에서 객체를 받아 애플의 조건을 검사하도록 메소드를 고쳐 다양한 동작을 수행할 수 있게 해야합니다. 이렇게 **동작 파라미터화**, 즉 메소드가 다양한 동작을 받아서 내부적으로 다양한 동작을 수행할 수 있습니다.
+
+filterApples 메소드가 ApplePredicate 객체를 인수로 받도록 고쳐서 **필터메소드 내부에서 컬렉션을 반복하는 로직**과 **컬렉션의 각 요소에 적용할 동작**을 **분리**할 수 있게 합니다.
+
+<br>
+
+## □ 네번째 시도 \_ 추상적 조건으로 필터링
+
+다음은 ApplePredicate를 이용한 필터 메소드입니다.
+
+```java
+public static List<Apple> filterApples(List<Apple> inventory, ApplePredicate p) {
+  List<Apple> result = new ArrayList<>();
+  for (Apple apple : inventory) {
+    if (p.test(apple)) {  // 프레디케이트 객체로 사과 검사 조건을 캡슐화
+      result.add(apple);
+    }
+  }
+}
+```
+
+<br>
+
+### **코드/동작 전달하기**
+
+이로써 필요에 따라 다양한 프레디케이트를 만들어 메소드로 전달할 수 있게 되어 유연한 코드가 되었습니다. 필요에 따라 인터페이스를 이용해 클래스를 만들면 되므로 모든 변화에 대응할 수 있게 된 것입니다.
+
+```java
+public class AppleRedAndHeavyPredicate implements ApplePredicate {
+  public boolean test(Apple apple) {
+    return RED.equals(apple.getColor()) && apple.getWeight() > 150;
+  }
+}
+
+List<Apple> redAndHeavyApples = filterApples(inventory, new AppleRedAndHeavyPredicate())
+```
+
+이렇게 filterApples 메소드의 동작을 파라미터화 했습니다.
+
+여기에서 가장 중요한 구현은 test메소드 입니다. 메소드는 객체만 인수로 받기 떄문에 test 메소드를 ApplePredicate 개겣로 감싸 전달해야 하며, 객체를 이용해 불리언 표현식 등을 전달할 수 있으므로 코드를 전달할 수 있는 거나 다름 없습니다.
+
+<br>
+
+### **한 개의 파라미터, 다양한 동작**
+
+<br>
+
+> 동작 파라미터의 강점
+>
+> -> 컬렉션 탐색 로직과 각 항목에 적용할 동작을 **분리**할 수 있다는 것!
+
+이러한 특징은 하나의 메소드가 다른 동작을 수행하도록 재활용 할 수 있게 해줍니다.
+
+그러나 여러 클래스를 구현하여 인스턴스화 하는 과정이 복잡하게 느껴질 수 있습니다. 이를 어떻게 개선해야 할까요?
+
+<br>
+<hr>
+<br>
+
+## ■ 3. 복잡한 과정 간소화
