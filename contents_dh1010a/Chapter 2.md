@@ -161,3 +161,134 @@ List<Apple> redAndHeavyApples = filterApples(inventory, new AppleRedAndHeavyPred
 
 #### 한 개의 파라미터, 다양한 동작
 컬렉션 탐색 로직과 각 항목에 적용할 동작을 분리할 수 있다는 것이 동작 파라미터화의 강점이다. 따라서 한 메서드가 다른 동작을 수행하도록 재활용 할 수 있다. 따라서 유연한 API를 만들 때 동작 파라미터화가 중요한 역할을 한다.
+
+## 2.3 복잡한 과정 간소화
+자바는 클래스의 선언과 인스턴스화를 동시에 수행할 수 있도록 **익명 클래스**라는 기법을 제공한다. 익명 클래스를 이용하면 코드의 양을 줄일 수 있지만 모든 것을 해결해주지는 않는다.
+
+### 2.3.1 익명 클래스
+**익명 클래스**는 자바의 지역 클래스(블록 내부에 선언된 클래스)와 비슷한 개념이다. 말 그래도 이름이 없는 클래스다. 익명 클래스를 이용하면 클래스 선언과 인스턴스화를 동시에 할 수 있다. 즉, 즉석에서 필요한 구현을 만들어서 사용할 수 있다.
+
+### 2.3.2 다섯 번째 시도 : 익명 클래스 사용
+다음은 익명 클래스를 이용해서 ApplePredicate를 구현하는 객체를 만드는 방법으로 필터링 예제를 다시 구현한 코드다.
+```java
+**List<Apple> redApples = filterApples(inventory, new ApplePredicate()) {
+	public boolean test(Apple apple) { **//반복되는 지저분한 코드
+		return RED.equals(apple.getColor());
+	}
+}
+```
+익명 클래스로도 아직 부족한 점이 있다.
+첫째, 위의 굵은 글씨로 표현한 부분처럼 익명 클래스는 여전히 많은 공간을 차지한다.
+둘째, 많은 프로그래머가 익명 클래스의 사용에 익숙하지 않다. 코드의 장황함은 나쁜 특성이다. 장황한 코드는 구현하고 유지보수하는 데 시간이 오래 걸릴 뿐 아니라 읽는 즐거움을 빼앗는 요소로, 개발자로부터 외면받는다.
+
+익명 클래스로 인터페이스를 구현하는 여러 클래스를 선언하는 과정을 줄일 수 있지만 여전히 만족스럽지 않다. 코드 조각을 전달하는 과정에서 결국은 객체를 만들고 명시적으로 새로운 동작을 정의하는 메서드를 구현해야 한다는 점은 변하지 않는다.
+
+### 2.3.3 여섯 번쨰 시도 : 람다 표현식 사용
+자바 8의 람다 표현식을 이용해서 위 예제 코드를 다음처럼 간단하게 재구현할 수 있다.
+```java
+List<Apple> result = filterApples(inventory, (Apple apple) -> RED.equals(apple.getColor()));
+```
+람다 표현식이라는 더 간단한 코드 전달 기법을 도입하여 간결하고 문제를 더 잘 설명하는 코드가 되었다.
+
+### 2.3.4 일곱 번째 시도 : 리스트 형식으로 추상화
+```java
+public interface Predicate<T> {
+	boolean test(T, t);
+}
+
+public static <T> List<T> filter(List<T> list, Predicate<T> p) {
+	List<T> result = new ArrayList<>();
+	for(T e: list) {
+		if(p.test(e)) {
+			result.add(e);
+		}
+	}
+	return result;
+}
+```
+이제 바나나, 오렌지, 정수, 문자열 등의 리스트에 필터 메서드를 사용할 수 있다. 다음은 람다 표현식을 사용한 예제다.
+```java
+List<Apple> redApples = filter(inventory, (Apple apple) -> RED.equals(apple.getColor()));
+
+List<Integer> evenNumbers = filter(numbers, (Integer i) -> i % 2 == 0);
+```
+이렇게 해서 유연성과 간결함이라는 두 마리 토끼를 모두 잡을 수 있었다.
+
+## 2.4 실전 예제
+지금까지 동작 파라미터화가 변화하는 요구사항에 쉽게 적응하는 유용한 패턴임을 확인했다. 동작 파라미터화 패턴은 동작을 캡슐화한 다음에 메서드로 전달해서 메서드의 동작을 파라미터화한다.
+
+자바 API의 많은 메서드를 다양한 동작으로 파라미터화할 수 있다. 또한 이들 메서드를 익명 클래스와 자주 사용하기도 한다. 이 절에서는 코드 전달 개념을 더욱 확실히 익힐 수 있도록 Comparator로 정렬하기, Runnable로 코드 블록 실행하기, Callable을 결과로 반환하기, GUI 이벤트 처리하기 예제를 소개한다.
+
+### 2.4.1 Comparator로 정렬하기
+자바 8의 List에는 sort메서드가 포함되어 있다. 다음과 같은 인터페이스를 갖는 java.util.Comparator 객체를 이용해서 sort의 동작을 파라미터화 할 수 있다.
+```java
+// java.util.Comparator
+public interface Comparator<T> {
+	int compare(T o1, T o2);
+}
+```
+Comparator를 구현해서 sort 메서드의 동작을 다양화할 수 있다. 익명 클래스를 이용해서 무게가 적은 순서로 목록에서 사과를 정렬할 수 있다.
+```java
+inventory.sort(new Comparator<Apple>() {
+	public int compare(Apple a1, Apple a2) {
+		return a1.getWegiht().compareTo(a2.getWeight());
+	}
+});
+```
+람다 표현식을 이용하면 다음처럼 간단하게 코드를 구현할 수 있다.
+```java
+inventory.sort((Apple a1, Apple a2) -> a1.getWeight().compareTo(a2.getWeight()));
+```
+
+### 2.4.2 Runnable로 코드 블록 실행하기
+자바 스레드를 이용하면 병렬로 코드 블록을 실행할 수 있다. 어떤 코드를 실행할 것인지를 스레드에게 알려줄 수 있을까? 여러 스레드가 각자 다른 코드를 실행할 수 있다. 나중에 실행할 수 있는 코드를 구현할 방법이 필요하다.
+
+자바 8까지는 Thread 생성자에 객체만을 전달할 수 있었으므로 보통 결과를 반환하지 않는 void run메소드를 포함하는 익명 클래스가 Runnable 인터페이스를 구현하도록 하는 것이 일반적인 방법이었다.
+
+자바에서는 Runnable 인터페이스를 이용해서 실행할 코드 블록을 지정할 수 있다.
+```java
+// java.lang.Runnable
+public interface Runnable {
+	void run();
+}
+```
+Runnable을 이용해서 다양한 동작을 스레드로 실행할 수 있다.
+```java
+Thread t = new Thread(new Runnable() {
+	public void run() {
+		System.out.println("Hello world");
+	}
+});
+```
+람다 표현식을 이용하면 다음처럼 스레드 코드를 구현할 수 있다
+```java
+Thread t = new Thread(() -> System.out.println("Hello world"));
+```
+
+### 2.4.3 Callable을 결과로 반환하기
+자바 5부터 지원하는 ExecutorService 인터페이스는 태스크 제출과 실행 과정의 연관성을 끊어준다. ExecutorService를 이용하면 태스크를 스레드 풀로 보내고 결과를 Future로 저장할 수 있다는 점이 스레드와 Runnable을 이용하는 방식과는 다르다.
+
+이 개념이 낯설더라도 당장은 Collable 인터페이스를 이용해 결과를 반환하는 태스크를 만든다는 사실만 알아두면 된다.
+
+### 2.4.4 GUI 이벤트 처리하기
+일반적으로 GUI 프로그래밍은 마우스 클릭이나 문자열 위로 이동하는 등의 이벤트에 대응하는 동작을 수행하는 식으로 동작한다. GUI 프로그래밍에서도 변화에 대응할 수 있는 유연한 코드가 필요하다. 모든 동작에 반응할 수 있어야 하기 때문이다.
+
+자바 FX에서는 setOnAction 메서드에 EventHalder를 전달함으로써 이벤트에 어떻게 반응할지 설정할 수 있다.
+```java
+Button button = new Button("Send");
+button.setOnAction(new EventHandler<ActionEvent>() {
+	public void handle(ActionEvent event) {
+		lable.setText("Sent!!");
+	}
+});
+
+//람다 표현식으로 다음처럼 구현할 수 있다.
+button.setOnAction((ActionEvent event) -> label.setText("Sent!!"));
+```
+
+## 2.5 마치며
+* 동작 파라미터화에서는 메서드 내부적으로 다양한 동작을 수행할 수 있도록 코드를 메서드 인수로 전달한다.
+* 동작 파라미터화를 이용하면 변화하는 요구사항에 더 잘 대응할 수 있는 코드를 구현할 수 있으며 나중에 엔지니어링 비용을 줄일 수 있다.
+* 코드 전달 기법을 이용하면 동작을 메서드의 인수로 전달할 수 있다. 하지만 자바 8 이전에는 코드를 지저분하게 구현해야 했다. 익명 클래스로도 어느 정도 코드를 깔끔하게 만들 수 있지만 자바 8에서는 인터페이스를 상속받아 여러 클래스를 구현해야 하는 수고를 없앨 수 있는 방법을 제공한다.
+* 자바 API의 많은 메서드는 정렬, 스레드, GUI 처리 등을 포함한 다양한 동작으로 파라미터화할 수 있다.
+
