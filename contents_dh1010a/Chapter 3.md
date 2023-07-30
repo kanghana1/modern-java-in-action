@@ -104,3 +104,66 @@ process(() -> System.out.println("This is awesome"))
 함수형 인터페이스임을 가리키는 어노테이션이다. @FunctionalInterface로 인터페이스를 선언했지만 실제로 함수형 인터페이스가 아니라면 컴파일러가 에러를 발생시킨다.
 
 ## 3.3 람다 활용 : 실행 어라운드 패턴
+자원 처리에 사용하는 순환 패턴은 자원을 열고, 처리한 다음에, 자원을 닫는 순서로 이루어진다. 설정과 정리 과정은 대부분 비슷하다. 즉, 실제 자원을 처리하는 코드를 설정과 저정리 두 과정이 둘러싸는 형태를 갖는다.이와 같은 형식의 코드를 **실행 어라운드 패턴**이라고 부른다.
+
+아래 예제에서 굵은 글씨는 파일에서 한 행을 읽는 코드이다.(예제는 자바 7에 새로 추가된 try-with-resource이다. 이를 사용하면 자원을 명시적으로 닫을 필요가 없으므로 간결한 코드를 구현하는 데 도움을 준다.)
+```java
+public String processFile() throws IOException {
+	**try (BufferedReader br = new BufferedReader(new FileReader("data.txt")))** {
+		return br.readLine();
+	}
+}
+```
+try-with-resource란? → try()에서 선언된 객체들에 대해서 try가 종료될 때 자동으로 자원을 해제해주는 기능이다. (AutoCloseable을 구현한 객체에 한에서만 close()를 호출)
+
+### 3.3.1 1단계: 동작 파라미터화를 기억하라
+현재 코드는 파일에서 한 번에 한 줄만 읽을 수 있다. 한 번에 두 줄을 읽거나 가장 자주 사용되는 단어를 반환하려면 어떻게 해야 할까?
+->기존의 설정,정리 과정은 재사용하고 processFile메서드만 다른 동작을 수행하도록 명령할 수 있도록 해야한다. -> processFile의 동작을 파라미터화 해야한다. process가 BufferedReader을 이용해서 다를 동작을 수행할 수 있도록 processFile메서드로 동작을 전달해야 한다.
+
+**람다**를 이용해서 동작을 전달할 수 있다.우선 BufferedReader를 인수로 받아서 String을 반환하는 람다가 필요하다.다음은 BufferedReader에서 두 행을 출력하는 코드이다.
+```java
+// BufferedReader -> String
+String result = processFile((BuffredReader br) -> br.readLine() + br.readLine());
+```
+
+### 3.3.2 2단계: 함수형 인터페이스를 이용해서 동작 전달
+함수형 인터페이스 자리에 람다를 사용할 수 있다. 따라서 BufferedReader -> String과 IOException을 throw할 수 있는 시그니처와 일치하는 함수형 인터페이스를 만들어야 한다.
+
+이 인터페이스를 BufferdReaderProcess라고 정의하자.
+```java
+@FuntionalInterface
+public interface BufferedReaderProcessor {
+	String process(BuffredReader b) throws IOException;
+}
+```
+정의한 인터페이스를 processFile 메서드의 인수로 전달할 수 있다.
+```java
+public String processFile(BufferedReaderProcessor p) throws IOException {
+	...
+}
+```
+
+### 3.3.3 3단계 : 동작 실행
+이제 BuffredReaderProcessor에 정의된 process 메서드의 시그니처(BufferedReader → String)와 일치하는 람다를 전달할 수 있다. 람다 표현식으로 함수형 인터페이스의 추상 메서드 구현을 직접 전달할 수 있으며, 전달된 코드는 함수형 인터페이스의 인스턴스로 전달된 코드와 같은 방식으로 처리한다.
+
+따라서 processFile 바디 내에서 BufferedReaderProcessor 객체의 process를 호출할 수 있다.
+```java
+public String processFile(BufferedReaderProcessor p) throws IOException {
+	try (BuffredReader br = new BuffredReader(new FileReader("data.txt"))) {
+		return p.process(br);
+	}
+}
+```
+
+### 3.3.4 4단계 : 람다 전달
+이제 람다를 이용해 다양한 동작을 processFile메서드로 전달할 수 있다.다음은 각각 한 행과 두 행을 처리하는 코드다.
+```java
+// 한 행을 처리
+String oneLine = processFile((BufferedReader br) -> br.readLine());
+
+// 두 행을 처리
+Strine twoLines = processFile((BuffredReader br) -> br.readLine() + br.readLine());
+```
+지금까지 함수형 인터페이스를 이용해서 람다를 전달하는 방법을 확인했으며 인터페이스도 정의하였다.
+
+다양한 람다를 전달하는 데 재활용 할 수 있도록 자바 8에 추가된 새로운 인터페이스를 다음 절에서 살펴본다.
