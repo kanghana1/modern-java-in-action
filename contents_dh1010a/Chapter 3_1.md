@@ -285,6 +285,7 @@ addNumbers.test(1000); // false (박싱 과정이 발생)
 |...|...|이하 생략...|
 
 아래 표는 람다와 함수형 인터페이스 예제를 보여준다.
+
 |사용 사례|람다 예제|대응하는 함수형 인터페이스|
 |---|---|---|
 |불리언 표현|(List<String> list) → list.isEmpty()|Predicate<List<String>>|
