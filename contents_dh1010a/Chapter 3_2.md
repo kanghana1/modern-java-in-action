@@ -110,4 +110,118 @@ portNumber = 31337;
 가변 지역 변수를 새로운 스레드에서 캡처할 수 있다면 안전하지 않은 동작을 수행할 가능성이 생긴다.
 
 ## 3.6 메서드 참조
-메서드 참조는 특정 람다 표현식을 축약한 것이라고 생각하면 된다.
+메서드 참조는 특정 람다 표현식을 축약한 것이라고 생각하면 된다. 메서드 참조를 이용하면 기존의 메서드 정의를 재활용해서 람다처럼 전달할 수 있다. 때로는 람다 표현식보다 메서드 참조를 사용하는 것이 더 가독성이 좋으며 자연스러울 수 있다.
+
+다음은 메서드 참조와 새로운 자바8  API를 활용한 정렬 예제이다.
+```java
+// 기존의 람다 표현식
+inventory.sort((Apple a1, Apple a2) 
+	-> a1.getWeight().compareTo(a2.getWeight()));
+
+// 메서드 참조와 java.util.Comparator.comparing을 활용한 코드
+inventory.sort(comparing(Apple::getWeight));
+```
+### 3.6.1 요약
+#### 메서드 참조가 왜 중요한가?
+* 메서드 참조를 이용하면 기존 메서드 구현으로 람다 표현식을 만들 수 있다. 이때 명시적으로 메서드명을 참조함으로써 **가독성을 높일 수 있다.**
+
+#### 메서드 참조는 어떻게 활용할까?
+* 메서드명 앞에 구분자(::)를 붙이는 방식으로 메서드 참조를 활용할 수 있다. Apple::getWeight는 Apple클래스에 정의된 getWeight의 메서드 참조다. 실제로 메서드를 호출하는 것은 아니므로 괄호는 필요없다.
+* 결과적으로 (Apple a) -> getWeight()를 축약한 것이다.
+* 메서드 참조를 새로운 기능이 아니라 하나의 메서드를 참조하는 람다를 편리하게 표현할 수 있는 문법으로 간주할 수 있다. 메서드 참조를 이용하면 같은 기능을 더 간결하게 구현할 수 있다.
+
+#### 메서드 참조를 만드는 방법
+메서드 참조는 세가지 유형으로 구분할 수 있다.
+1. 정적 메서드 참조
+   * 예를 들어 Integer의 parseInt 메서드는 Integer::parseInt로 표현할 수 있다.
+2. 다양한 형식의 인스턴스 메서드 참조
+   * 예를 들어 String의 length 메서드는 String::length로 표현할 수 있다.
+3. 기존 객체의 인스턴스 메서드 참조
+   * 예를 들어 Transaction 객체를 할당받은 expensiveTransaction 지역변수 -> getValue 메서드가 있다면 -> expensiveTransaction::getValue라고 표현할 수 있다.
+
+```java
+// 헬퍼 메서드
+private boolean isValidName(String string) {
+	return Character.isUpperCase(string.charAt(0));
+}
+
+// 람다 표현식
+filter(list, (String s) -> isValidName(s));
+
+// 메서드 참조
+filter(list, this::isValidName)
+```
+Predicate<String>을 필요로 하는 적당한 상황에서 메서드 참조를 사용할 수 있다. 생성자, 배열 생성자, super 호출 등에 사용할 수 있는 특별한 형식의 메서드 참조도 있다. 예제를 통해서 확인해보자.
+```java
+// List에 포함된 문자열을 대소문자를 구분하지 않고 정렬하는 예제
+// List의 sort()는 인수로 Comparator를 기대함
+// Comparator는 (T, T) → int라는 함수 디스크립터를 가짐
+List<String> str = Arrays.asList("a", "b", "A", "B");
+str.sort((s1, s2) -> s1.compareToIgnoreCase(s2));
+str.sort(String::compareToIgnoreCase);//메서드 참조 사용
+```
+컴파일러는 람다 표현식의 형식을 검사하던 방식과 비슷한 과정으로 메서드 참조가 주어진 함수형 인터페이스와 호환하는지 확인한다. 즉, 메서드 참조는 콘텍스트의 형식과 일치해야 한다.
+
+## 3.6.2 생성자 참조
+ClassName::new처럼 클래스명과 new 키워드를 이용해 기존 생성자의 참조를 만들 수 있다. 정적 메서드의 참조를 만드는 법과 비슷하다. 예를 들어 Supplier의 () -> Apple과 같은 시그니처를 갖는 생성자가 있다고 가정하자.
+```java
+
+// 람다 표현식은 디폴트 생성자를 가진 Apple을 만든다.
+Supplier<Apple> c1 = () -> new Apple();
+Apple a1 = c1.get();
+
+// 생성자 참조
+Supplier<Apple> c1 = Apple::new;
+Apple a1 = c1.get();
+
+//Supplier의 get 메서드를 호출해서 새로운 Apple객체를 만들 수 있다.
+```
+Apple(Integer weight)라는 시그니처를 갖는 생성자는 Function 인터페이스의 시그니처와 같다.
+```java
+// 람다 표현식
+Function<Integer, Apple> c2 = (weight) -> new Apple(weight);
+Apple a2 = c2.apply(110); 
+
+// 생성자 참조
+Function<Integer, Apple> c2 = Apple::new;
+Apple a2 = c2.apply(110);
+
+//Function의 apply 메서드에 무게를 인수로 호출해서 새로운 Apple 객체를 만들 수 있다.
+```
+다음 코드에서 Intger를 포함하는 리스트의 각 요소를 우리가 정의했던 map같은 메서드를 이용해서 Apple 생성자로 전달한다. 결과적으로 다양한 무게를 포함하는 사과 리스트가 만들어진다.
+```java
+List<Integer> weights = Arrays.asList(7, 3, 4, 10);
+List<Apple> apples = map(weights, Apple::new); //map 메서드로 생성자 참조 전달
+public List<Apple> map(List<Integer> list, Function<Integer, Apple> f) {
+   List<Apple> result = new ArrayList<>();
+   for(Integer i: list) {
+      result.add(f.apply(i));
+   }
+   return result;
+}
+```
+Apple(String color, Integer weight)처럼 두 인수를 갖는 생성자는 BiFunction 인터페이스와 같은 시그니처를 가지므로 다음처럼 할 수 있다.
+```java
+// 람다 표현식
+BiFunction<Color, Integer, Apple> c3 = (color, weight) -> new Apple(color, weight);
+Apple a3 = c3.apply(GREEN, 110);
+
+// 생성자 참조
+BiFunction<Color, Integer, Apple> c3 = Apple::new;
+Apple a3 = c3.apply(GREEN, 110);
+```
+인스턴스화하지 않고도 생성자에 접근할 수 있는 기능을 다양한 상황에 응용할 수 있다. 예를 들어 Map으로 생성자와 문자열값을 관련시킬 수 있다. 그리고 String과 Integer가 주어졌을때 다양한 무게를 갖는 여러 종류의 과일을 만드는 giveMeFruit라는 메서드를 만들 수 있다.
+```java
+static Map<String, Function<Integer, Fruit>> map = new HashMap<>();
+static {
+	map.put("apple", Apple::new);
+	map.put("orange", Orange::new);
+}
+
+public static Fruit giveMeFruit(String fruit, Integer weight) {
+	return map.get(fruit.toLowerCase()).apply(weight);
+   //Funtion의 apply메서드에 정수 무게 파라미터를 제공해서 Fruit를 만들 수 있다.
+}
+```
+→ 핵심은 람다 표현식 처럼 함수 디스크립터와 같은 시그니처를 가진 경우에 참조가 가능하다는 것이다.
+## 3.7 람다, 메서드 참조 활용하기
