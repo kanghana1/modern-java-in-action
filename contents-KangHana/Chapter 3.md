@@ -600,3 +600,243 @@ filter(words, this::isValidName);
 <br>
 
 ## □ 생성자 참조
+
+ClassName::new처럼 클래스명과 new 키워드를 이용해 기존 생성자의 참조를 만들 수 있습니다. 이는 **정적 메소드의 참조를 만드는 방법**과 비슷합니다.
+
+```java
+// 메소드 참조
+Supplier<Apple> c1 = Apple::new;
+Apple a1 = c1.get();
+// 람다 표현식으로 디폴트 생성자를 가진 Apple 만듦
+Supplier<Apple> c1 = () -> new Apple();
+Apple a1 = c1.get();
+```
+
+다음 코드에서 Integer를 포함하는 리스트의 각 요소를 우리가 정의했던 map같은 메소드를 이용해 Apple 생성자로 전달합니다. 결과적으로 다양한 무게를 포함하는 사과 리스트가 만들어집니다.
+
+```java
+List<Integer> weights = Arrays.asList(7,3,4,10);
+List<Apple> apples = map(weights, Apple::new);
+
+public List<Apple> map(List<Integer> list, Function<Integer, Apple> f) { // map메소드로 생성자 참조 전달
+  List<Apple> result = new ArrayList<>();
+  for (Integer i : list) {
+    result.add(f.apply(i));
+  }
+  return result;
+}
+```
+
+인스턴스화 하지 않고도 생성자에 접근할 수 있는 기능을 다양한 상황에 응용할 수 있습니다.
+
+정리하면, 원하는 시그니처를 갖는 함수형 인터페이스가 제공되지 않으면 직접 인터페이스를 구현해 사용하면 됩니다.
+
+<br>
+<hr>
+<br>
+
+## ■ 7. 람다, 메소드 참조 활용하기
+
+지금까지 동작 파라미터화, 익명 클래스, 람다 표현식, 메소드 참조를 배웠습니다. 이 모든 것을 동원해 다음과 같은 코드로 만드는 것이 목표입니다.
+
+```java
+inventory.sort(comparing(Apple::getWeight));
+```
+
+<br>
+
+### **▶ 1단계 : 메소드 참조 만들기**
+
+자바 8의 List API에서 sort 메소드를 제공하기에 구현할 필요는 없지만, 어떻게 sort 메소드에 정렬 전략을 전달할 수 있을까요?
+
+sort메소드는 다음과 같은 시그니처를 갖습니다.
+
+```java
+void sort(Comparator(? super E) c)
+```
+
+이 코드는 Comparator 객체를 인수로 받아 두 사과를 비교합니다. 객체 안에 동작을 포함시켜 sort에 전달된 정렬 전략에 따라 sort의 동작이 달라지게 합니다.
+
+```java
+// 1단계 코드
+public class AppleComparator implements Comparator<Apple> {
+  public inti compare(Apple a, Apple b) {
+    return a.getWeight().compareTo(b.getWeight());
+  }
+}
+inventory.sort(new AppleComparator());
+```
+
+<br>
+
+### **▶ 2단계 : 익명 클래스 사용**
+
+위 코드에서 Comparator를 한 번만 사용하므로 구현하는 것보다는 **익명클래스**를 이용하는 것이 효율적입니다.
+
+```java
+// 2단계 코드
+inventory.sort(new Comparator<Apple>() {
+  public int compare(Apple a, Apple b) {
+    return a.getWeight().compareTo(b.getWeight());
+  }
+});
+```
+
+<br>
+
+### **▶ 3단계 : 람다 표현식 사용**
+
+장황한 코드를 람다표현식을 이용해 바꿀 수 있습니다. 함수형 인터페이스를 기대하는 곳 어디에서나 람다표현식을 사용할 수 있음을 배웠습니다.
+
+함수형 인터페이스가 정의한 **추상 메소드의 시그니처 (함수 디스크립터)는 람다 표현식의 시그니처를 정의**합니다.
+
+위 코드를 개선하면 아래와 같습니다.
+
+```java
+inventory.sort((Apple a, Apple b) -> a1.getWeight().compareTo(b1.getWeight));
+```
+
+여기서 자바 컴파일러는 **람다의 파라미터 형식을 추론**한다고 했으므로 코드를 아래처럼 더 줄일 수 있습니다.
+
+```java
+inventory.sort((a, b) -> a1.getWeight().compareTo(b1.getWeight));
+```
+
+**Comparator**는 Comparable 키를 추출하여 Comparator 객체로 만드는 **Function 함수를 인수로 받는 정적 메소드 comparing**을 포함합니다.
+
+이 메소드를 사용해서 가독성을 향상시킬 수 있습니다.
+
+```java
+Comparator<Apple> c = Comparator.comparing((Apple a) -> a.getWeight());
+```
+
+이제 코드를 아래처럼 간소화 할 수 있습니다.
+
+```java
+// 3단계 코드
+import static java.util.Comparator.comparing;
+inventory.sort(comparing(apple -> apple.getWeight()));
+```
+
+<br>
+
+### **▶ 4단계 : 메소드 참조 사용**
+
+**메소드 참조**를 이용하면 람다 표현식의 인수를 더 깔끔하게 전달할 수 있습니다.
+
+```java
+// 4단계 코드
+import static java.util.Comparator.comparing;
+inventory.sort(comparing(Apple::getWeight));
+```
+
+<br>
+<hr>
+<br>
+
+## ■ 8. 람다 표현식을 조합할 수 있는 유용한 메소드
+
+앞서 자바 8 API의 몇몇 함수형 인터페이스와 유틸리티 메소드를 확인했습니다. 이 말은 즉, 간단한 여러 개의 람다 표현식을 조합해서 복잡한 람다 표현식을 만들 수 있다는 것입니다.
+
+**두 프레디케이트를 조합하거나, 두 함수를 조합하는 일이 가능**합니다. 이런 일이 가능한 이유는
+
+함수형 인터페이스에서 **디폴트 메소드**를 정의하기 때문입니다!
+<br>
+
+### **▶ 1. Comparator 조합**
+
+정적메소드 Comparator.comparingi을 이용해 비교에 사용할 키를 추출하는 Function 기반의 Comparator를 반환할 수 있습니다.
+
+```java
+Comparator<Apple> c = Comparator.comparing(Apple::getWeight);
+```
+
+<br>
+
+#### **> 역정렬**
+
+내림차순 정렬을 하고싶으면 다른 Comparator인스턴스를 만들 필요 없이 인터페이스 자체에서 주어진 **reverse라는 디폴트 메소드**를 이용하면 됩니다.
+
+```java
+inventory.sort(comparing(Apple::getWeight).reversed()); // 무게 내림차순 정렬
+```
+
+<br>
+
+### **> Comparator 연결**
+
+위 코드에서 만약 무게가 같은 두 사과는 원산지 국가별로 사과를 정렬하고 싶으면 어떻게 해야할까요?
+
+이럴 떈 비교 결과를 더 다듬을 수 있는 두 번째 Comparator를 만들 수 있습니다.
+
+```java
+inventory.sort(comparing(Apple::getWeight).reversed().thenComparing(Apple::getCountry)); // 무게 내림차순 정렬
+```
+
+<br>
+
+### **▶ 2. Comparator 조합**
+
+Predicate 인터페이스는 복잡한 프레디케이트를 만들 수 있도록 negate, and, or 세 가지 메소드를 제공합니다.
+
+예를 들어 '빨간 색이 아닌 사과'처럼 특정 프레디케이트를 반전시킬 때 negate를 사용할 수 있습니다.
+
+```java
+// negate 이용 (기존 객체 결과 반전)
+Predicate<Apple> notRedApple = redApple.negate();
+
+// and 이용
+Predicate<Apple> redAndHeavyApple = redApple.and(apple -> apple.getWeight() > 150);
+
+// or 이용
+Predicate<Apple> redAndHeavyAppleOrGreen =
+  redApple.and(apple -> apple.getWeight() > 150)
+    .or(apple -> GREEN.equals(a.getColor()));
+```
+
+and와 or은 작성순이 곧 우선순위입니다.
+
+<br>
+
+### **▶ 3. Function 조합**
+
+Function 인터페이스는 Function 인스턴스를 반환하는 andThen, compose 두 가지 디폴트 메소드를 제공합니다.
+
+<br>
+
+#### **> andThen 메소드**
+
+주어진 함수를 먼저 적용한 결과를 다른 함수의 입력으로 전달하는 함수를 반환합니다. (파이프랑 비슷)
+andThen은 앞의 함수를 먼저 실행한 후, 괄호 안 함수를 실행합니다.
+
+Ex |
+
+**f.andThen(b)** == **g(f(x))**
+
+<br>
+
+#### **> compose 메소드**
+
+이 메소드는 andThen 메소드와 순서가 반대라고 생각하면 됩니다. 인수로 주어진 함수를 먼저 실행한 다음 그 결과를 외부 함수의 인수로 제공합니다.
+
+Ex |
+
+**f.compose(g)** == **f(g(x))**
+
+<br>
+<hr>
+<br>
+
+## ■ 9. 마치며
+
+- 람다 표현식은 익명 함수의 일종이다. 이름은 없지만 파라미터 리스트, 바디, 반환 형식을 가지며 예외를 던질 수 있다.
+- 람다 표현식으로 간결한 코드를 구현할 수 있다.
+- 함수형 이넡페이스는 하나의 추상 메소드만을 정의하는 인터페이스다.
+- 함수형 인터페이스를 기대하는 곳에서만 람다 표현식을 이용할 수 있다.
+- 람다 표현식을 이용해서 함수형 인터페이스의 추상 메소드를 즉석으로 제공할 수 있으며 람다 표현식 전체가 함수형 인터페이스의 인스턴스로 취급된다.
+- java.util.function 패키지는 Predicate<T>, Function<T,R>, Supplier<T>, COnsumer<T> 등을 포함해 자주 사용하는 다양한 함수형 인터페이스를 제공한다.
+- 자바 8은 Predicate<T>와 Function<T,R> 같은 제네릭 함수형 인터페이스와 관련한 박싱 동작을 피할 수 있는 IntPredicate, IntToLongFunction 등과 같은 기본형 특화 인터페이스도 제공한다.
+- 실행 어라운드 패턴을 람다와 활용하면 유연성과 재사용성을 추가로 얻을 수 있다.
+- 람다 표현식의 기대 형식을 대상 형식이라 한다.
+- 메소드 참조를 이용하면 기존의 메소드 구현을 재사용하고 직접 전달할 수 있다.
+- Comparator, Predicate, Function 같은 함수형 인터페이스는 람다 표현식을 조합할 수 있는 다양한 디폴트 메소드를 제공한다.
