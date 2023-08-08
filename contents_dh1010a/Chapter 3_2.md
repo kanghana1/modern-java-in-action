@@ -225,3 +225,125 @@ public static Fruit giveMeFruit(String fruit, Integer weight) {
 ```
 → 핵심은 람다 표현식 처럼 함수 디스크립터와 같은 시그니처를 가진 경우에 참조가 가능하다는 것이다.
 ## 3.7 람다, 메서드 참조 활용하기
+지금까지 배운 동작 파라미터화, 익명 클래스, 람다 표현식, 메서드 참조 등을 이용하여 최종 목표로 다음과 같은 코드를 만든다.
+```java
+inventory.sort(comparing(Apple::getWeight));
+```
+
+### 3.7.1 1단계: 코드 전달
+sort메서드는 다음과 같은 시그니처를 갖는다.
+```java
+void sort(Comparator<? super E> c)
+```
+객체 안에 동작을 포함시키는 방식으로 다양한 전략을 전달할 수 있다. sort에 전달된 정렬 전략에 따라 sort의 동작이 달라진다. -> sort의 **동작**은 **파라미터화**되었다.
+```java
+public class AppleComparator implements Comparator<Apple> {
+	public int compare(Apple a1, Apple a2) {
+		return a1.getWeight().compareTo(a2.getWeight());
+	}
+}
+inventory.sort(new AppleComparator());
+```
+
+### 3.7.2 2단계: 익명 클래스 사용
+한 번만 사용할 Comparator를 위 코드처럼 구현하는 것 보다는 **익명 클래스**를 이용하는 것이 좋다. 익명 클래스는 선언과 인스턴스화를 동시에 할 수 있기 때문이다.
+```java
+inventory.sort(new Comparator<Apple>() {
+	public int compare(Apple a1, Apple a2) {
+		return a1.getWeight().compareTo(a2.getWeight());
+	}
+});
+```
+
+### 3.7.3 3단계: 람다 표현식 사용
+자바 8에서는 람다 표현식을 이용해 코드를 전달할 수 있다.**함수형 인터페이스**를 기대하는 곳 어디에서나 람다 표현식을 사용할 수 있다. 함수형 인터페이스란 오직 하나의 추상 메서드를 정의하는 인터페이스다.
+추상메서드의 시그니처(함수 디스크립터라 불림)는 람다 표현식의 시그니처를 정의한다.
+```java
+// Comparator의 함수 디스크립터는 (T, T) -> int
+// 따라서 람다 표현식의 시그니처는 (Apple, Apple) -> int
+inventory.sort((Apple a1, Apple a2) -> 
+	a1.getWeight().compareTo(a2.getWeight()));
+// 자바 컴파일러는 람다의 파라미터 형식을 추론하므로 더 줄일수 있다.
+inventory.sort((a1, a2) -> a1.getWeight().compareTo(a2.getWeight()));
+
+```
+이 코드의 가독성을 더 향상시킬 수 없을까? Comparator는 Comparable 키를 추출해서 Comparator 객체로 만드는 Function 함수를 인수로 받는 정적 메서드 comparing 메서드를 포함한다.
+```java
+// 함수 디스크립터 : (Function<T, U>) -> Comparator<T>
+// Function의 함수 디스크립터 : (T) -> U
+// 이 예제에서 T는 Apple, U는 (apple의 getWeight()의 리턴타입)의 상위 타입(?)
+Comparator<Apple> c = Comparator.comparing((Apple a) -> a.getWeight());
+
+import static java.util.Comparator.comparing;
+inventory.sort(comparing(apple -> apple.getWeight()));
+```
+
+### 3.7.4 4단계: 메서드 참조 사용
+메서드 참조를 이용하면 람다 표현식의 인수를 더 깔끔하게 전달할 수 있다.
+```java
+import static java.util.Comparator.comparing;
+inventory.sort(comparing(Apple::getWeight));
+```
+코드만 짧아진 것이 아니라 코드 자체로 ‘Apple을 weight별로 비교해서 inventory를 sort하라'는 의미를 전달할 수 있게 되었다.
+
+## 3.8 람다 표현식을 조합할 수 있는 유용한 메서드
+자바 8 API의 몇몇 함수형 인터페이스는 다양한 유틸리티 메서드를 포함한다. 간단한 여러 개의 람다 표현식을 조합해서 복잡한 람다 표현식을 만들 수 있다. 또한 한 함수의 결과가 다른 함수의 입력이 되도록 두 함수를 조합할 수 있다.
+
+-> 디폴트 메서드의 등장으로 함수형 인터페이스의 정의를 벗어나지 않으면서 추가로 메서드를 제공할 수 있다.
+
+### 3.8.1 Comparator 조합
+비교에 사용할 키를 추출하는 Function기반의 Comparator를 반환
+```java
+Comparator<Apple> = Comparator.comparing(Apple::getWeight);
+```
+
+#### 역정렬
+```java
+inventory.sort(comparing(Apple::getWegiht).reversed());//내림차순으로 정렬
+```
+
+#### Comperator 연결
+여러가지 정렬 조건이 필요할 때 여러개의 비교자를 객체에 전달한다.
+```java
+inventory.sort(comparing(Apple::getWeight)
+				 .reversed()
+				 .thenComparing(Apple::getCountry));
+```
+
+### 3.8.2 Predicate 조합
+
+특정 프레디케이트를 반전시킬 때 사용하는 메서드 negate
+```java
+// 빨간색인 사과 → 빨간색이 아닌 사과
+Predicate<Apple> notRedApple = redApple.negate();
+```
+
+두 프레디케이트를 연결해서 새로운 프레디케이트 객체를 만드는 default 메소드 and(), or()
+```java
+// 빨간색인 사과 -> 빨간색이면서 무거운 사과
+Predicate<Apple> redAndHeavyApple = 
+		redApple.and(apple -> apple.getWeight() > 150);
+
+// 빨간색이면서 무거운 사과 또는 그냥 녹색 사과
+Predicate<Apple> redAndHeavyApple = 
+		redApple.and(apple -> apple.getWeight() > 150)
+						.or(apple -> GREEN.equals(a.getColor()));
+```
+단순한 람다 표현식을 조합해서 더 복잡한 람다 표현식을 만들 수 있어 대단하다. 심지어 람다 표현식을 조합해도 코드 자체가 문제를 잘 설명한다.
+
+### 3.8.3 Function조합
+주어진 함수를 먼저 적용한 결과를 다른 함수의 입력으로 전달하는 함수를 반환하는 andThen
+```java
+Function<Integer, Integer> f = x -> x + 1;
+Function<Integer, Integer> g = x -> x * 2;
+Function<Integer, Integer> h = f.andThen(g); // h(x) = g(f(x))
+int result = h.apply(1) // result = 4
+```
+인수로 주어진 함수를 먼저 실행한 다음에 그 결과를 외부 함수의 인수로 제공하는 Compose메서드
+```java
+Function<Integer, Integer> f = x -> x + 1;
+Function<Integer, Integer> g = x -> x * 2;
+Function<Integer, Integer> h = f.compose(g); // h(x) = f(g(x))
+int result = h.apply(1) // result = 3
+```
+여러 유틸리티 메서드를 조합해서 다양한 변환 파이프라인을 만들 수 있다.
