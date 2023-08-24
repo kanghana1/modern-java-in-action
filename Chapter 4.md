@@ -119,4 +119,7 @@ filter같은 연산은 고수준 빌딩 블록으로 이루어져 있습니다. 
 <br>
 
 ## ■ 2. 스트림 시작하기
+<<<<<<< HEAD:Chapter 4.md
 
+=======
+>>>>>>> c560ea175409f8f2a532c218a72bea29db526a15:contents-KangHana/Chapter 4.md
