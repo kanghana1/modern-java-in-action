@@ -254,3 +254,109 @@ List<String> names = menu.stream()
 ## ■ 4. 스트림 연산
 
 <br>
+
+```java
+import static java.util.stream.Collectors.toList;
+List<String> threeHighCaloricDishNames = menu.stream()
+                                          .filter(dish -> dish.getCalories() > 300)
+                                          .map(Dish::getName)
+                                          .limit(3)
+                                          .collect(toList());
+System.out.println(threeHighCaloricDishNames);
+```
+
+해당 코드에서 연산을 두 그룹으로 구분할 수 있습니다.
+
+- **중간연산**
+  - 서로 연결되어 파이프라인 형성
+  - filter, map, limit
+- **최종연산**
+  - 파이프라인을 실행한 후 닫음
+  - collect
+
+### ▷ **_중간연산_**
+
+<br>
+
+중간연산은 다른 **스트림을 반환**합니다. 따라서 여러 중간 연산을 연결해 질의를 만들 수 있습니다.
+
+중간 연산의 중요한 특징은 단말 연산을 스트림 파이프라인에 실행하기 전까지는 아무 연산도 수행하지 않는다는 것입니다. 즉, 게으릅니다.
+
+(\*) 중간 연산을 합친 후, 다 합쳐진 중간 연산을 최종 연산으로 한 번에 처리합니다.
+
+```java
+// 코드
+import static java.util.stream.Collectors.toList;
+List<String> lowCaloricDisihesName = menu.stream()
+                                          .filter(dish -> {
+                                            System.out.println("filtering:" + dish.getNamge())
+                                            return dish.getCalories() > 300;
+                                          })
+                                          .map (dish -> {
+                                            System.out.println("mapping:" + dish.getNamge())
+                                            return dish.getNamge();
+                                          })
+                                          .limit(3)
+                                          .collect(toList());
+System.out.println(names);
+```
+
+> <출력결과>
+>
+> filtering:pork
+>
+> mapping:pork
+>
+> filtering:beef
+>
+> mapping:beef
+>
+> filtering:chicken
+>
+> mapping:chicken
+>
+> [pork, beef, chicken]
+
+<br>
+
+스트림의 게으른 특성 덕에 몇 가지 최적화 효과를 얻을 수 있었습니다.
+
+1. 300칼로리 넘는 요리는 여러개지만 오직 선착순 3개만 선택됨 => **limit연산, 쇼트서킷 기법** 덕분!
+2. filter와 map은 서로 다른 연산이지만 한 과정으로 병합 => **루프 퓨전**이라고 함
+
+<br>
+
+### ▷ **_최종연산_**
+
+<br>
+
+최종연산은 스트림 파이프라인에서 결과를 도출합니다. 보통 최종 연산에 의해 List, Integer, void 등 **스트림 이외의 결과가 반환**됩니다.
+
+<br>
+
+### **_스트림 이용하기_**
+
+스트림 이용 과정은 다음과 같이 세 과정으로 요약할 수 있습니다.
+
+- 질의를 수행할 데이터소스 (컬렉션 등)
+- 스트림 파이프라인을 구성할 중간 연산 연결
+- 스트림 파이프라인을 실행하고 결과를 만들 최종 연산
+
+스트림 파이프라인의 개념은 **빌더 패턴**과 비슷합니다.
+
+> 빌더 패턴이란 복합 객체의 생성 과정과 표현 방법을 분리하여 동일한 생성 절차에서 서로 다른 표현 결과를 만들 수 있게 하는 패턴입니다 (자바에서 메소드 가져오는거) - wikipedia
+
+빌더 패턴에서는 호출을 연결해서 설정을 만들고(스트림에서 중간 연산 연결하는 것과 같음) 준비된 설정에 build 메소드를 호출(최종연산에 해당)합니다.
+
+<br>
+<hr>
+<br>
+
+## ■ 5. 마치며
+
+- 스트림은 소스에서 추출된 연속 요소로, 데이터 처리 연산을 지원한다.
+- 스트림은 내부 반복을 지원한다. 내부 반복은 filter, map, sorted 등의 연산으로 반복을 추상화한다.
+- 스트림에는 중간 연산과 최종 연산이 있다.
+- 중간 연산은 filter와 map처럼 스트림을 반환하면서 다른 연산과 연결되는 연산이다. 중간 연산을 이용해서 파이프라인을 구성할 수 있찌만 중간 연산으로는 어떤 결과도 생성할 수 없다.
+- forEach나 count처럼 스트림 파이프라인을 처리해서 스트림이 아닌 결과를 반환하는 연산을 최종 연산이라고 한다.
+- 스트림의 요소는 요청할 때 게으르게 계산된다.
