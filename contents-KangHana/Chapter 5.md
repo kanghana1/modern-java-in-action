@@ -270,3 +270,121 @@ List<String> uniqueCharacters = words.stream()
 ## ■ 4. 검색과 매칭
 
 <br>
+
+특성 속성이 데이터 집합에 있는지 여부를 검색하는 데이터 처리도 자주 사용됩니다. 스트림 API는 allMatch, anyMatch, noneMatch, findFirst, findAny 등 다양한 유틸리티 메소드를 제공합니다.
+
+<br>
+
+### ▷ 프레디케이트가 적어도 한 요소와 일치하는지 확인 \_ **anyMatch** 메소드
+
+적어도 한 요소와 일치하는지 확인할 때에는 anyMatch 메소드를 활용합니다.
+
+```java
+if (menu.stream().anyMatch(Dish::isVegetarian)) {
+  System.out.println("The menu is (somewhat) vegetarian friendly!");
+}
+```
+
+anyMatch는 **불리언을 반환**합니다.
+
+<br>
+
+### ▷ 프레디케이트가 모든 요소와 일치하는지 확인
+
+<br>
+
+### **allMatch** 메소드
+
+스트림의 모든 요소가 주어진 프레디케이트와 일치하는지 검사합니다. 예를 들어 메뉴가 건강식(모든 요리가 1000칼로리 이하면 건강식)인지 확인할 수 있습니다.
+
+```java
+boolean isHealthy = menu.stream()
+                        .allMatch(dish -> dish.getCalories() < 1000);
+```
+
+<br>
+
+### **noneMatch** 메소드
+
+noneMatch는 allMatch와 반대되는 연산을 수행합니다. 즉, noneMatch는 주어진 프레디케이트와 일치하는 요소가 없는지 확인합니다. 위 예제를 noneMatch를 이용해 다시 구현할 수 있습니다.
+
+```java
+boolean isHealthy = menu.stream()
+                        .noneMatch(dish -> dish.getCalories() >= 1000);
+```
+
+anyMatch, allMatch, noneMatch 세 메소드는 스트림 **쇼트서킷 기법**, 즉 자바의 &&, ||와 같은 연산을 활용합니다.
+
+> **쇼트서킷**
+>
+> <br>
+>
+> 모든 스트림의 요소를 처리하지 않고도 결과를 반환할 수 있는 상황을 쇼트서킷이라고 합니다. 즉, 원하는 요소를 찾았으면 즉시 결과를 반환할 수 있습니다.
+>
+> 마찬가지로 스트림의 모든 요소를 처리할 필요 없이 주어진 크기의 스트림을 생성하는 limit도 쇼트서킷 연산입니다.
+> <br>
+>
+> \_
+
+<br>
+
+### ▷ 요소 검색
+
+findAny 메소드는 현재 스트림에서 임의의 요소를 반환합니다. 이 메소드를 다른 스트림 연산과 연결해서 사용할 수 있습니다.
+
+**스트림 파이프라인**은 내부적으로 **_단일 과정으로 실행할 수 있도록 최적화_** 됩니다. 즉, 쇼트서킷을 이용해서 결과를 찾는 즉시 실행을 종료합니다.
+
+```java
+Optional<Dish> dish =
+    menu.stream()
+        .filter(Dish::isVegetarian)
+        .findAny();
+```
+
+위 코드에서 Optional은 무엇일까요?
+
+<br>
+
+### **Optional** 이란?
+
+Optional<T.> 클래스는 값의 존재나 부재 여부를 표현하는 컨테이너 클래스입니다. findAny처럼 null요소를 반환할 수 있는 메소드가 쉽게 에러를 발생시킬 수 있기 때문에 만들어졌다고 합니다.
+
+즉, Optional은 값이 존재하는지 확인하고, 값이 없을 때 어떻게 처리할지 강제하는 기능을 제공합니다.
+
+- isPresent() : Optional이 값을 포함하면 true 반환, 아니면 false 반환
+- ifPresent(Consumer<T.> block) : 값이 있으면 주어진 블록을 실행합니다. 이때 Consumer 함수형 인터페이스는 void를 반환하는 람다를 전달할 수 있습니다.
+- T get() : 값이 존재하면 값을 반환, 없으면 NoSuchElementException을 일으킵니다.
+- T orElse(T other) : 값이 있으면 값을 반환하고 없으면 기본값을 반환합니다.
+
+Optional을 사용하면 값이 null인지 검사할 필요가 없습니다.
+
+### ▷ 첫번째 요소 찾기
+
+리스트나 정렬된 연속 데이터로부터 생성된스트림처럼 일부 스트림에는 **논리적인 아이템 순서가 정해져 있을 수도** 있습니다.
+
+이런 스트림에서 첫 번째 요소를 찾고싶으면 findFirst를 이용할 수 있습니다.
+
+```java
+List<Integer> someNumbers = Arrays.asList(1,2,3,4,5);
+Optional<Integer> firstSquareDivisibleByThree = someNumbers.stream()
+                                                            .map(n -> n * n)
+                                                            .filter(n -> n % 3 == 0)
+                                                            .findFirst();
+```
+
+> **findFirst**와 **findAny**는 언제 활용할까 ?
+>
+> <br>
+>
+> 이 둘이 모두 필요한 이유는 **병렬성** 때문입니다. 병렬실행에서는 첫 번째 요소를 찾기 쉽지 않기 때문에, 요소의 반환 순서가 상관없다면 병렬 스트림에서는 제약이 적은 findAny를 사용합니다.
+>
+> <br>
+> _
+
+<br>
+<hr>
+<br>
+
+## ■ 5. 리듀싱
+
+<br>
