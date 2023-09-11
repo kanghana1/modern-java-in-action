@@ -180,3 +180,93 @@ List<Dish> dishes = specialMenu.stream()
 ## ■ 3. 매핑
 
 <br>
+
+특정 객체에서 특정 데이터를 선택하는 작업은 데이터 처리 과정에서 자주 수행됩니다. 스트림 API의 map과 flatMap 메소드는 특정 데이터를 선택하는 기능을 제공합니다.
+
+<br>
+
+### □ 스트림의 각 요소에 함수 적용하기
+
+스트림은 **함수를 인수로** 받는 **map 메소드**를 지원합니다. 인수로 제공된 함수는 각 요소에 적용되고 함수를 적용한 결과가 새로운 요소로 매핑됩니다.
+
+```java
+List<String> dishNames = menu.stream()
+                            .map(Dish::getName)
+                            .collect(toList());
+```
+
+getName은 문자열을 반환하므로 map 메소드의 출력 스트림은 Stream<String> 형식을 갖습니다.
+각 요리명의 길이를 알고싶으면 다음처럼 다른 map 메소드를 연결할 수도 있습니다.
+
+```java
+List<Integer> dishNameLengths = menu.stream()
+                                    .map(Dish::getName)
+                                    .map(String::length)
+                                    .collect(toList());
+```
+
+<br>
+
+### □ 스트림 평면화
+
+위에서 했던 것들을 응용하여 리스트에서 고유 문자로 이루어진 리스트를 반환해봅시다. 예를 들어 ["Hello", "World"] 리스트가 있다면 결과로 ["H","e","l","o","W","r","d"] 를 포함하는 리스트가 반환되어야 합니다.
+
+<br>
+
+### **- 잘못된 풀이**
+
+리스트에 있는 각 단어를 문자로 매핑한 다음 distinct로 중복된 문자를 필터링해 풀 수 있을거라고 생각했을수도 있습니다. (제가 그랬습니다) 즉, 코드로 작성하면 다음과 같습니다.
+
+```java
+words.stream()
+      .map(word -> word.split(""))
+      .distinct()
+      .collect(toList());
+```
+
+하지만 위 코드는 각 단어의 Stirng[]을 반환한다는 문제점이 있습니다. 즉, map 메소드가 반환한 스트림의 형식은 Stream<String[]> 입니다. 반면 우리가 원하는 반환 형식은 **Stream<String.>** 입니다.
+
+<br>
+
+또 다른 경우로는 map 과 Arrays.stream을 활용한 경우가 있습니다. 다음 코드처럼 문자열을 받아 스트림을 만드는 Arrays.stream 메소드를 활용합니다.
+
+```java
+String[] arrayOfwords = {"Goodbye", "World"};
+Stream<String> streamOfwords = Arrays.stream(arrayOfwords);
+
+words.stream()
+      .map(word -> word.split("")) // 각 단어를 개별 문자열 배열로 변환
+      .map(Arrays::stream) // 각 배열을 별도의 스트림으로 생성
+      .distinct()
+      .collect(toList());
+```
+
+이렇게 써도 결국 스트림 리스트(List<Stream<String>>)이 만들어지므로 문제는 해결되지 않습니다.
+
+문제를 해결하기 위해서는 각 단어를 개별 문자열로 이루어진 배열로 만든 후 각 배열을 별도의 스트림으로 만들어야 합니다.
+
+<br>
+
+### **-flatMap 사용**
+
+flatMap을 사용하면 다음처럼 문제를 해결할 수 있습니다.
+
+```java
+List<String> uniqueCharacters = words.stream()
+                                      .map(word -> word.split("")) // 배열변환
+                                      .flatMap(Arrays::stream) // 생성된 스트림을 하나의 스트림으로 평면화
+                                      .distinct()
+                                      .collect(toList())
+```
+
+**flatMap**은 각 배열을 스트림이 아니라 **_스트림의 콘텐츠로 매핑_** 합니다. 즉, 하나의 평면화된 스트림을 반환합니다.
+
+요약하면 flatMap 메소드는 스트림의 각 값을 다른 스트림으로 만든 후, 모든 스트림을 하나의 스트림으로 만드는 기능을 수행합니다.
+
+<br>
+<hr>
+<br>
+
+## ■ 4. 검색과 매칭
+
+<br>
