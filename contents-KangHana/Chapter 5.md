@@ -388,3 +388,128 @@ Optional<Integer> firstSquareDivisibleByThree = someNumbers.stream()
 ## ■ 5. 리듀싱
 
 <br>
+
+지금까지 살펴본 최종 연산은 아래와 같은 타입을 반환했습니다.
+
+- 불리언 (allMatch 등)
+- void (forEach)
+- Optional 객체 (findAny 등)
+- collect로 모든 스트림의 요소를 리스트로
+
+지금부터는 리듀스 연산을 이용해서 스트림 요소를 조합해 더 복잡한 질의를 표현하는 방법을 설명하려고 합니다.
+
+이러한 질의를 수행하기 위해서는 Integer 같은 결과가 나올 때까지 스트림의 모든 요소를 반복적으로 처리해야합니다. 이러한 질의를 **리듀싱 연산**이라고 합니다. (함수형 프로그래밍 언어 용어로는 **폴드**라고도 합니다.)
+
+<br>
+
+### **▷ 요소의 합**
+
+다음은 for-each 루프를 이용해 리스트의 숫자 요소를 더하는 코드입니다.
+
+```java
+int sum = 0;
+for (int x : numbers) {
+  sum += x;
+}
+```
+
+해당 코드에서 파라미터를 두 개 사용했습니다.
+
+- sum 변수의 초깃값 0
+- 리스트의 모든 요소를 조합하는 연산
+
+위와 같은 상황에서 reduce를 이용하면 애플리케이션의 반복된 패턴을 추상화 할 수 있습니다.다음처럼 스트림의 모든 요소를 더할 수 있습니다.
+
+```java
+int sum = numbers.stream().reduce(0, (a,b) -> a + b);
+```
+
+reduce는 두 개의 인수를 갖습니다.
+
+- 초깃값 \_ 초깃값 0으로 설정
+- 함수 \_ 두 요소를 조합해서 새로운 값을 만드는 BinaryOperator<T.>, 예제에서는 람다식 사용
+
+reduce로 다른 람다, 예를 들면 (a,b) -> a\*b를 넘겨주면 모든 요소에 곱셈을 적용할 수 있습니다.
+
+### **_예시_**
+
+숫자 스트림에 4,5,3,9가 있고, reduce(0, (a, b) -> a + b) 라면,
+
+0 + 4 = 4
+
+4 + 5 = 9
+
+9 + 3 = 12
+
+12 + 9 = 21
+
+순서로 연산됩니다.
+
+이 과정은 메소드를 이용해 더 간결하게 만들 수 있습니다. 자바 8에서는 Integer 클래스에 **정적 sum 메소드**를 제공합니다.
+
+```java
+int sum = numbers.stream().reduce(0, Integer::sum);
+```
+
+<br>
+
+### **초깃값 없음**
+
+초깃값을 받지 않게 오버로드된 reduce도 있습니다. 이 reduce는 스트림에 아무 요소도 없는 상황이 있을 수 있고, 그로 인해 합계가 없을 수 있기 때문에 **Optional 객체를 반환**합니다.
+
+```java
+Optional<Integer> sum = numbers.stream().reduce((a, b) -> a + b);
+```
+
+<br>
+
+### **▷ 최댓값과 최솟값**
+
+reduce는 두 인수를 받는다고 했습니다.
+
+- 초깃값
+- 스트림의 두 요소를 합쳐서 하나의 값으로 만드는 데 사용할 람다
+
+따라서 두 요소에서 최댓값을 반환하는 람다만 있으면 최댓값을 구할 수 있습니다. 이때 Integer의 max, min 메소드를 사용합니다.
+
+이 경우가 초깃값이 없는 경우에 해당 됩니다.
+
+```java
+Optional<Integer> max = numbers.stream().reduce(Integer::max);
+Optional<Integer> max = numbers.stream().reduce((x, y) -> x > y ? x : y);
+
+Optional<Integer> min = numbers.stream().reduce(Integer::min);
+Optional<Integer> min = numbers.stream().reduce((x, y) -> x < y ? x : y);
+```
+
+### + **맵 리듀스 패턴**
+
+map과 reduce를 연결하는 기법을 이르는 말로 쉽게 병렬화가 가능하다는 특징이 있습니다.
+
+예시코드는 아래와 같습니다.
+
+```java
+int cnt = menu.stream()
+              .map(d -> 1)
+              .reduce(0, (a,b) -> a + b);
+```
+
+<br>
+
+> ### **reduce 메소드의 장점과 병렬화**
+>
+> <br>
+>
+> reduce를 이용하면 내부 반복이 추상화 되면서 내부구현에서 병렬로 reduce를 실행할 수 있게 됩니다. 반복적 합계에서는 sum 변수를 공유해야 하기 때문에 병렬화가 어렵습니다.
+>
+> 추가로 7장에서 스트림의 모든 요소를 더하는 코드를 병렬로 만드는 방법인 parallelStream()을 설명할 예정입니다. 이를 이용하는 것만으로도 별다른 노력 없이 병렬성을 얻을 수 있습니다.
+>
+> \_
+
+<br>
+<hr>
+<br>
+
+## ■ 6. 실전연습
+
+<br>
