@@ -721,3 +721,189 @@ Steam<double[]> pythagoreanTriples
 ## ■ 7. 스트림 만들기
 
 <br>
+
+스트림을 얻거나 만들 수 있는 방법은 다양했습니다.
+
+- stream 메소드로 컬렉션에서 스트림 얻을 수 있음
+- 범위숫자에서 스트림 만들 수 있음
+
+이 외에도 일련의 값, 배열, 파일, 함수를 이용한 무한 스트림 만들기 방법을 설명할 것입니다.
+
+<br>
+
+### **▷ 값으로 스트림 만들기**
+
+**임의의 수를 인수로** 받는 정적 메소드 **Stream.of**를 이용해 스트림을 만들 수 있습니다. 아래 코드는 스트림의 모든 문자열을 대문자로 변환한 후 문자열을 출력하는 코드입니다.
+
+```java
+Stream<String> steam = Stream.of("Modern","Java","in","Action");
+stream.map(String::toUpperCase).forEach(System.out::println);
+```
+
+아래 코드처럼 **empty 메소드**를 이용해 **스트림을 비울 수** 있습니다.
+
+```java
+Stream<String> emptyStream = Stream.empty();
+```
+
+<br>
+
+### **▷ null이 될 수 있는 객체로 스트림 만들기**
+
+자바9에서는 null이 될 수 있는 객체를 스트림으로 만들 수 있는 메소드가 추가되었습니다. 어쩔때는 null이 될 수 있는 객체를 스트림으로 만들어야할 떄도 있습니다.
+
+null이 발생할 수 있는 메소드를 스트림에 활용하려면 다음처럼 null을 명시적으로 확인해야 했습니다.
+
+```java
+String homeValue = System.getProperty("home");
+Stream<String> homeValueStream = homeValue == null ? Stream.empty() : Stream.of(value);
+```
+
+**Stream.ofNullable**을 통해 다음처럼 코드를 구현할 수 있습니다.
+
+```java
+Stream<String> homeValueStream = Stream.ofNullable(System.getProperty("home"));
+```
+
+null이 될 수 있는 객체를 포함하는 스트림값을 flatMap과 함께 사용하는 상황에서는 이 패턴을 더 유용하게 사용할 수 있습니다.
+
+```java
+Stream<String> value = Stream.of("config", "home", "user")
+                              .flatMap(key -> Stream.ofNullable(System.getProperty(key)));
+```
+
+<br>
+
+### **▷ 배열로 스트림 만들기**
+
+배열을 인수로 받는 정적 메소드 **Arrays.stream**을 이용해 스트림을 만들 수 있습니다. 예를 들어 다음처럼 기본형 int로 이루어진 배열을 IntStream으로 변환할 수 있습니다.
+
+```java
+int[] numbers = {2,3,5,7,11,13};
+int sum = Arrays.stream(numbers).sum();
+```
+
+<br>
+
+### **▷ 파일로 스트림 만들기**
+
+파일 처리 등 I/O 연산에 사용하는 자바의 NIO API도 스트림 API를 활용할 수 있도록 업데이트 되었습니다. **java.nio.file.Files**의 많은 정적 메소드가 스트림을 반환합니다.
+
+예를 들어 Files.lines는 주어진 파일의 행 스트림을 문자열로 반환합니다.
+
+<br>
+
+지금까지 배운 스트림 연산을 이용해 다음 코드처럼 파일에서 고유한 단어 수를 찾는 프로그램을 만들 수 있습니다.
+
+```java
+long uniqueWords = 0;
+try(Stream<String> lines = Files.lines(Paths.get("data.txt", Charset.defaultCharset()))) {
+  uniqueWords = lines.flatMap(line -> Arrays.stream(line.split(" ")))
+                      .distinct()
+                      .count();
+} catch(IOException e) {
+
+}
+```
+
+**Files.lines**로 **파일의 각 행 요소를 반환**하는 스트림을 얻을 수 있습니다. 스트림 소스가 I/O 자원이라 메모리 누수를 막기 위해서는 자원을 닫아야 합니다.
+
+기존에는 finally 블록에서 자원을 닫았지만, **Stream 인터페이스는 AutoCloseable 인터페이스를 구현**하였기 때문에 **try 블록 내 자원은 자동으로 관리**됩니다.
+
+<br>
+
+### **▷ 함수로 무한 스트림 만들기**
+
+스트림 API는 **함수에서 스트림을 만들 수 있는 두 정적 메소드 Stream.iterate와 Stream.generate를 제공**합니다. 두 연산을 이용해 무한 스트림을 만들 수 있습니다.
+
+- **_무한 스트림_** 이란, 크기가 고정되지 않은 스트림을 의미합니다.
+
+iterate와 generate로 만든 스트림은 요청할 때마다 주어진 함수를 이용해 값을 만듭니다.
+
+<br>
+
+### **iterate 메소드**
+
+```java
+Stream.iterate(0, n -> n + 2)
+      .limit(10)
+      .forEach(System.out::println);
+```
+
+**iterate 메소드**는 초깃값과 람다를 인수로 받아서 요청할 때마다 값을 생산하여 무한 스트림을 만들어냅니다.
+
+이러한 스트림을 **언바운드 스트림**이라고 합니다.
+
+일반적으로 연속된 일련의 값을 만들때는 iterate를 사용합니다.
+
+<br>
+
+자바9의 iterate 메소드는 프레디케이트를 지원합니다. 두 번째 인수로 프레디케이트를 받아 언제까지 작업을 수행할 것인지의 기준을 설정할 수 있습니다.
+
+```java
+IntStream.iterate(0, n -> n < 100, n -> n + 4)
+          .forEach(System.out::println);
+```
+
+위처럼 쓰는 것도 좋지만, **takeWhile**을 이용하는 것도 좋습니다.
+
+```java
+IntStream.iterate(0, n -> n + 4)
+          .takeWhile(n -> n < 100)
+          .forEach(System.out::println);
+```
+
+<br>
+
+### **generate 메소드**
+
+**generate**는 iterate와 달리 생산된 각 값을 **연속적으로 계산하지 않습니다**. generate는 Supplier<T>를 인수로 받아서 새로운 값을 생산합니다.
+
+```java
+Stream.generate(Math::random)
+      .limit(5)
+      .forEach(System.out::println);
+```
+
+위 코드에서 사용한 발행자(메소드 참조 Math.random)은 상태가 없는 메소드, 즉 나중에 계산에 사용할 어떤 값도 저장해두지 않습니다. **병렬코드에서는 발행자에 상태가 있으면 안전하지 않다**고 합니다. 따라서 상태를 갖는 발행자는 피해야합니다.
+
+IntStream을 이용하면 박싱 연산 문제를 피할 수 있습니다. IntStream의 generate 메소드는 Supplier<T.> 대신에 IntSupplier을 인수로 받습니다.
+
+```java
+IntStream ones = IntStream.generate(() -> 1);
+```
+
+아래 코드처럼 IntSupplier 인터페이스에 정의된 getAsInt를 구현하는 객체를 명시적으로 전달할 수도 있습니다. **getAsInt 메소드**의 연산을 커스터마이즈 할 수 있는 **상태 필드를 정의**할 수 있다는 점이 위 코드와의 차이점입니다.
+
+그러나 상태를 바꾼다면 **부작용이 생길 수 있습니다**.
+
+아래는 다음 피보나치 요소를 반환하도록 IntSupplier를 구현한 코드입니다.
+
+```java
+IntSupplier fib = new IntSupplier() {
+  private int previous = 0;
+  private int current = 1;
+  public int getAsInt() {
+    int oldPrevious = this.previous;
+    int nextValue = this.previous + this.current;
+    this.previous = this.current;
+    this.current = nextValue;
+  }
+};
+
+IntStream.generate(fib).limit(5).forEach(System.out::println);
+```
+
+위 코드에서는 IntSupplier 인스턴스를 만들었습니다. 만들어진 객체는 기존 피보나치 요소와 두 인스턴스 변수에 어떤 피보나치 요소가 들어있는지 추적하므로 **가변 상태 객체**입니다.
+
+하지만 iterate는 새로운 값을 생성하면서도 기존 상태를 바꾸지 않는 순수한 불변상태를 유지합니다.
+
+스트림을 **병렬로 처리**할 때는 **_불변 상태 기법을 고수_** 해야합니다.
+
+<br>
+<hr>
+<br>
+
+## ■ 8. 마치며
+
+- 스트림 API를 이용하면 복잡한 데이터 처리 질의를 표현할 수 있다.
