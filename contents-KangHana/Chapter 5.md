@@ -907,3 +907,13 @@ IntStream.generate(fib).limit(5).forEach(System.out::println);
 ## ■ 8. 마치며
 
 - 스트림 API를 이용하면 복잡한 데이터 처리 질의를 표현할 수 있다.
+- **filter, distinct, takeWhile, dropWhile, skip, limit 메소드로 스트림을 필터링하거나 자를 수 있다.**
+- 소스가 정렬되어 있다는 사실을 알고 있을 때 takeWhile과 dropWhile 메소드를 효과적으로 사용할 수 있다.
+- map, flatMap 메소드로 스트림의 요소를 추출하거나 변환할 수 있다.
+- findFirst, findAny 메소드로 스트림의 요소를 검색할 수 있다. allMatch, noneMatch, anyMatch 메소드를 이용해 주어진 프레디케이트와 일치하는 요소를 스트림에서 검색할 수 있다.
+- 이들 메소드는 **쇼트서킷**, 즉 **결과를 찾는 즉시 반환**하며, 전체 스트림을 처리하지는 않는다.
+- reduce 메소드로 스트림의 모든 요소를 반복 조합하며 값을 도출할 수 있다. 예를 들어 reduce로 스트림의 최댓값이나 모든 요소의 합계를 계산할 수 있다.
+- filter, map 등은 상태를 저장하지 않는 상태 없는 연산이다. reduce같은 연산은 값을 계산하는 데 필요한 상태를 저장한다. sorted, distinct 등의 메소드는 새로운 스트림을 반환하기에 앞서 스트림의 모든 요소를 버퍼에 저장해야한다. 이런 메소드를 상태 있는 연산이라고 부른다.
+- IntStream, DoubleStream, LongStream은 기본형 특화 스트림이다. 이들 연산은 각각의 기본형에 맞게 특화되어 있다.
+- 컬렉션 뿐 아니라 값, 배열, 파일, iterate와 generate 같은 메소드로도 스트림을 만들 수 있다.
+- 무한한 개수의 요소를 가진 스트림을 무한스트림이라고 한다.
