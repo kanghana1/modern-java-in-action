@@ -510,6 +510,400 @@ int cnt = menu.stream()
 <hr>
 <br>
 
-## ■ 6. 실전연습
+## ■ 6. 숫자형 스트림
 
 <br>
+
+reduce를 이용해서 다음처럼 합계를 구할 수 있습니다.
+
+```java
+int calories = menu.stream()
+                    .map(Dish::getCalories)
+                    .reduce(0, Integer::sum);
+```
+
+사실 위 코드에는 박싱비용이 숨어있습니다. 내부적으로 합계를 계산하기 전에 Integer를 기본형으로 언박싱해야합니다.
+
+```java
+int calories = menu.stream()
+                    .map(Dish::getCalories)
+                    .sum();
+```
+
+이렇게 쓰는건 잘못된 코드입니다. map 메소드는 Stream<T.>를 생성하기 때문에 Stream<Dish.>같은 것이 오면 sum 연산을 할 수 없어 메소드 자체가 생성되어 있지 않습니다.
+
+다행히 스트림 API 숫자 스트림을 효율적으로 처리할 수 있도록 **기본형 특화 스트림**을 제공합니다.
+
+<br>
+
+### **▷ 기본형 특화 스트림**
+
+자바8에서는 세 가지 기본형 특화 스트림을 제공합니다. 스트림 API는 박싱 비용을 피할 수 있도록 세 가지 스트림을 제공합니다.
+
+- IntStream : int 요소에 특화
+- DoubleStream : double 요소에 특화
+- LongStream : long 요소에 특화
+
+특화 스트림은 필요할 때 다시 **객체 스트림으로 복원하는 기능도 제공**합니다. 그렇다고 특별한 추가 기능을 제공하지는 않고, 오직 **_박싱 과정에서 일어나는 효율성과 관련_** 있습니다.
+
+<br>
+
+### **숫자 스트림으로 매핑**
+
+스트림을 특화 스트림으로 변활할 때는 다음 세 개의 메소드를 가장 많이 사용합니다.
+
+- mapToInt
+- mapToDouble
+- mapToLong
+
+이들은 map과 정확히 같은 기능을 수행하지만, **Stream 대신 특화 스트림을 반환**합니다.
+
+```java
+int calories = menu.stream()
+                    .mapToInt(Dish::getCalories)
+                    .sum();
+```
+
+sum 메소드는 스트림이 비어있으면 기본값 0을 반환합니다.
+
+<br>
+
+### **객체 스트림으로 복원하기**
+
+**boxed 메소드를** 이용하면 특화 스트림을 일반 스트림으로 변환할 수 있습니다.
+
+```java
+IntStream intStream = menu.stream().mapToInt(Dish::getCalories); // 스트림을 숫자 스트림으로 변환
+Stream<Integer> stream = intStream.boxed(); // 숫자 스트림을 스트림으로 변환
+```
+
+<br>
+
+### **기본값 : OptionalInt**
+
+스트림에 요소가 없는 상황과 실제 최댓값이 0인 상황을 구별하기 위해 Optional 클래스를 활용합니다.
+
+**Optional을 Integer, String 등의 참조 형식으로 파라미터화** 할 수 있습니다. 또, **OptionalInt, OptionalDouble, OptionalLong** 세 가지 기본형 특화 스트림 버전도 제공합니다.
+
+```java
+OptionalInt maxCalories = menu.stream()
+                              .mapToInt(Dish::getCalories)
+                              .max();
+
+int max = maxCalories.orElse(1); // 최댓값이 없는 상황에 사용할 기본값을 명시적으로 정의 가능
+```
+
+<br>
+
+### **▷ 숫자 범위**
+
+1에서 100사이 숫자를 생성하는 등 특정 범위의 숫자를 이용해야 하는 상황이 종종 발생합니다. 자바 8의 **IntStream과 LongStream**에서는 **range와 rangeClosed라는 정적 메소드를 제공**합니다.
+
+- **_range_** : 시작값과 종료값을 인수로 포함하지 않음
+- **_rangeClosed_** : 시작값과 종료값을 인수로 포함
+
+다음 코드처럼 1부터 100까지 숫자를 만들 수 있습니다.
+
+```java
+IntStream evenNumbers = IntStream.rangeClosed(1,100)
+                                  .filter(n -> n % 2 == 0);
+System.out.println(evenNumbers.count());
+```
+
+rangeClosed 대신 range를 쓰면 100이 포함되지 않기 때문에 49개를 반환합니다.
+
+<br>
+
+### **▷ 숫자 스트림 활용 : 피타고라스 수**
+
+<br>
+
+### **피타고라스의 수**
+
+a*a + b*b = c\*c 를 만족하는 세 개의 정수 (a,b,c) 를 의미합니다.
+
+<br>
+
+### **세 수 표현하기**
+
+세 수는 int 배열을 사용하는 것이 좋습니다.
+
+<br>
+
+### **좋은 필터링 조합**
+
+세 수 중에서 a,b 두 수만 제공했다면, 두 수가 피타고라스 수의 일부가 될 수 있는 좋은 조합인지 확인하려면, **(a*a + b*b)의 제곱근이 정수인지 확인**해야 합니다. 이를 코드로 작성하면 다음과 같습니다.
+
+```java
+Math.sqrt(a*a + b*b) % 1 == 0;
+```
+
+이를 filter에 적용하면 다음과 같이 활용이 가능합니다.
+
+```java
+filter(b -> Math.sqrt(a*a + b*b) % 1 == 0);
+```
+
+위 코드에서 a가 주어진다면 피타고라스 수를 구성하는 모든 b를 필터링할 수 있습니다.
+
+<br>
+
+### **집합 생성**
+
+필터로 좋은 조합을 갖는 a,b를 선택할 수 있게 되었습니다. 이제 세 번째 수를 찾으면 됩니다!
+
+다음처럼 map을 이용해 각 요소를 피타고라스 수로 변환할 수 있습니다.
+
+```java
+stream.filter(b -> Math.sqrt(a*a + b*b) % 1 == 0) // 적당한 b를 필터링
+      .map(b -> new int[] {a, b, (int) Math.sqrt(a*a + b*b)}); // 피타고라스 수를 배열로 만들기
+```
+
+<br>
+
+### **b값 생성**
+
+필터를 만들었으니, 필터에 넣을 b값을 생성하면 됩니다. 이때는 Stream.rangeClosed를 이용해줍니다.
+
+```java
+IntStream.rangeClosed(1,100)
+          .filter(b -> Math.sqrt(a*a + b*b) % 1 == 0)
+          .boxed() // Stream<Integer> 로 복원
+          .map(b -> new int[] {a, b, (int) Math.sqrt(a*a + b*b)});
+```
+
+위 코드처럼 boxed로 바꿀 수도 있고, mapToObj로 재구현할 수도 있습니다.
+
+```java
+IntStream.rangeClosed(1,100)
+          .filter(b -> Math.sqrt(a*a + b*b) % 1 == 0)
+          .mapToObj(b -> new int[] {a, b, (int) Math.sqrt(a*a + b*b)});
+```
+
+<br>
+
+### **a값 생성과 최종 완성**
+
+마찬가지로 a를 생성할 수 있습니다. 아래 코드는 최종 완성 코드입니다.
+
+```java
+Stream<int[]> pythagoreanTriples
+    = IntStream.rangeClosed(1,100).boxed()
+                .flatMap(a ->
+                    IntStream.rangeClosed(a, 100) // a가 아닌 1을 쓰면 중복 발생 가능
+                              .filter(b -> Math.sqrt(a*a + b*b) % 1 == 0)
+                              .mapToObj(b ->
+                                  new int[]{a, b, (int)Math.sqrt(a * a + b * b)})
+                );
+```
+
+여기서 **flatMap**은 a를 이용해 만든 세 수의 스트림과 스트림 a의 값을 매핑하면서 만들어지는 스트림을 **하나의 평준화된 스트림으로 만들어주는 역할**을 합니다.
+
+<br>
+
+### **개선할 점**
+
+위 코드에서는 제곱근을 두 번 계산합니다. 따라서 (a*a, b*b, a*a+b*b) 형식을 만족하는 세 수를 만든 후 우리가 원하는 조건에 맞는 결과만 필터링하는 것이 더 최적화 된 방법입니다.
+
+```java
+Steam<double[]> pythagoreanTriples
+    = IntStream.rangeClosed(1,100).boxed()
+                .flatMap(a -> IntStream.rangeClosed(a, 100)
+                .mapToObj(
+                  b -> new double[]{a, b, Math.sqrt(a*a + b*b)})  // 세 수 만들어서 배열에
+                .filter(t -> t[2] % 1 == 0)); // 세번째 요소는 정수여야함
+```
+
+<br>
+<hr>
+<br>
+
+## ■ 7. 스트림 만들기
+
+<br>
+
+스트림을 얻거나 만들 수 있는 방법은 다양했습니다.
+
+- stream 메소드로 컬렉션에서 스트림 얻을 수 있음
+- 범위숫자에서 스트림 만들 수 있음
+
+이 외에도 일련의 값, 배열, 파일, 함수를 이용한 무한 스트림 만들기 방법을 설명할 것입니다.
+
+<br>
+
+### **▷ 값으로 스트림 만들기**
+
+**임의의 수를 인수로** 받는 정적 메소드 **Stream.of**를 이용해 스트림을 만들 수 있습니다. 아래 코드는 스트림의 모든 문자열을 대문자로 변환한 후 문자열을 출력하는 코드입니다.
+
+```java
+Stream<String> steam = Stream.of("Modern","Java","in","Action");
+stream.map(String::toUpperCase).forEach(System.out::println);
+```
+
+아래 코드처럼 **empty 메소드**를 이용해 **스트림을 비울 수** 있습니다.
+
+```java
+Stream<String> emptyStream = Stream.empty();
+```
+
+<br>
+
+### **▷ null이 될 수 있는 객체로 스트림 만들기**
+
+자바9에서는 null이 될 수 있는 객체를 스트림으로 만들 수 있는 메소드가 추가되었습니다. 어쩔때는 null이 될 수 있는 객체를 스트림으로 만들어야할 떄도 있습니다.
+
+null이 발생할 수 있는 메소드를 스트림에 활용하려면 다음처럼 null을 명시적으로 확인해야 했습니다.
+
+```java
+String homeValue = System.getProperty("home");
+Stream<String> homeValueStream = homeValue == null ? Stream.empty() : Stream.of(value);
+```
+
+**Stream.ofNullable**을 통해 다음처럼 코드를 구현할 수 있습니다.
+
+```java
+Stream<String> homeValueStream = Stream.ofNullable(System.getProperty("home"));
+```
+
+null이 될 수 있는 객체를 포함하는 스트림값을 flatMap과 함께 사용하는 상황에서는 이 패턴을 더 유용하게 사용할 수 있습니다.
+
+```java
+Stream<String> value = Stream.of("config", "home", "user")
+                              .flatMap(key -> Stream.ofNullable(System.getProperty(key)));
+```
+
+<br>
+
+### **▷ 배열로 스트림 만들기**
+
+배열을 인수로 받는 정적 메소드 **Arrays.stream**을 이용해 스트림을 만들 수 있습니다. 예를 들어 다음처럼 기본형 int로 이루어진 배열을 IntStream으로 변환할 수 있습니다.
+
+```java
+int[] numbers = {2,3,5,7,11,13};
+int sum = Arrays.stream(numbers).sum();
+```
+
+<br>
+
+### **▷ 파일로 스트림 만들기**
+
+파일 처리 등 I/O 연산에 사용하는 자바의 NIO API도 스트림 API를 활용할 수 있도록 업데이트 되었습니다. **java.nio.file.Files**의 많은 정적 메소드가 스트림을 반환합니다.
+
+예를 들어 Files.lines는 주어진 파일의 행 스트림을 문자열로 반환합니다.
+
+<br>
+
+지금까지 배운 스트림 연산을 이용해 다음 코드처럼 파일에서 고유한 단어 수를 찾는 프로그램을 만들 수 있습니다.
+
+```java
+long uniqueWords = 0;
+try(Stream<String> lines = Files.lines(Paths.get("data.txt", Charset.defaultCharset()))) {
+  uniqueWords = lines.flatMap(line -> Arrays.stream(line.split(" ")))
+                      .distinct()
+                      .count();
+} catch(IOException e) {
+
+}
+```
+
+**Files.lines**로 **파일의 각 행 요소를 반환**하는 스트림을 얻을 수 있습니다. 스트림 소스가 I/O 자원이라 메모리 누수를 막기 위해서는 자원을 닫아야 합니다.
+
+기존에는 finally 블록에서 자원을 닫았지만, **Stream 인터페이스는 AutoCloseable 인터페이스를 구현**하였기 때문에 **try 블록 내 자원은 자동으로 관리**됩니다.
+
+<br>
+
+### **▷ 함수로 무한 스트림 만들기**
+
+스트림 API는 **함수에서 스트림을 만들 수 있는 두 정적 메소드 Stream.iterate와 Stream.generate를 제공**합니다. 두 연산을 이용해 무한 스트림을 만들 수 있습니다.
+
+- **_무한 스트림_** 이란, 크기가 고정되지 않은 스트림을 의미합니다.
+
+iterate와 generate로 만든 스트림은 요청할 때마다 주어진 함수를 이용해 값을 만듭니다.
+
+<br>
+
+### **iterate 메소드**
+
+```java
+Stream.iterate(0, n -> n + 2)
+      .limit(10)
+      .forEach(System.out::println);
+```
+
+**iterate 메소드**는 초깃값과 람다를 인수로 받아서 요청할 때마다 값을 생산하여 무한 스트림을 만들어냅니다.
+
+이러한 스트림을 **언바운드 스트림**이라고 합니다.
+
+일반적으로 연속된 일련의 값을 만들때는 iterate를 사용합니다.
+
+<br>
+
+자바9의 iterate 메소드는 프레디케이트를 지원합니다. 두 번째 인수로 프레디케이트를 받아 언제까지 작업을 수행할 것인지의 기준을 설정할 수 있습니다.
+
+```java
+IntStream.iterate(0, n -> n < 100, n -> n + 4)
+          .forEach(System.out::println);
+```
+
+위처럼 쓰는 것도 좋지만, **takeWhile**을 이용하는 것도 좋습니다.
+
+```java
+IntStream.iterate(0, n -> n + 4)
+          .takeWhile(n -> n < 100)
+          .forEach(System.out::println);
+```
+
+<br>
+
+### **generate 메소드**
+
+**generate**는 iterate와 달리 생산된 각 값을 **연속적으로 계산하지 않습니다**. generate는 Supplier<T>를 인수로 받아서 새로운 값을 생산합니다.
+
+```java
+Stream.generate(Math::random)
+      .limit(5)
+      .forEach(System.out::println);
+```
+
+위 코드에서 사용한 발행자(메소드 참조 Math.random)은 상태가 없는 메소드, 즉 나중에 계산에 사용할 어떤 값도 저장해두지 않습니다. **병렬코드에서는 발행자에 상태가 있으면 안전하지 않다**고 합니다. 따라서 상태를 갖는 발행자는 피해야합니다.
+
+IntStream을 이용하면 박싱 연산 문제를 피할 수 있습니다. IntStream의 generate 메소드는 Supplier<T.> 대신에 IntSupplier을 인수로 받습니다.
+
+```java
+IntStream ones = IntStream.generate(() -> 1);
+```
+
+아래 코드처럼 IntSupplier 인터페이스에 정의된 getAsInt를 구현하는 객체를 명시적으로 전달할 수도 있습니다. **getAsInt 메소드**의 연산을 커스터마이즈 할 수 있는 **상태 필드를 정의**할 수 있다는 점이 위 코드와의 차이점입니다.
+
+그러나 상태를 바꾼다면 **부작용이 생길 수 있습니다**.
+
+아래는 다음 피보나치 요소를 반환하도록 IntSupplier를 구현한 코드입니다.
+
+```java
+IntSupplier fib = new IntSupplier() {
+  private int previous = 0;
+  private int current = 1;
+  public int getAsInt() {
+    int oldPrevious = this.previous;
+    int nextValue = this.previous + this.current;
+    this.previous = this.current;
+    this.current = nextValue;
+  }
+};
+
+IntStream.generate(fib).limit(5).forEach(System.out::println);
+```
+
+위 코드에서는 IntSupplier 인스턴스를 만들었습니다. 만들어진 객체는 기존 피보나치 요소와 두 인스턴스 변수에 어떤 피보나치 요소가 들어있는지 추적하므로 **가변 상태 객체**입니다.
+
+하지만 iterate는 새로운 값을 생성하면서도 기존 상태를 바꾸지 않는 순수한 불변상태를 유지합니다.
+
+스트림을 **병렬로 처리**할 때는 **_불변 상태 기법을 고수_** 해야합니다.
+
+<br>
+<hr>
+<br>
+
+## ■ 8. 마치며
+
+- 스트림 API를 이용하면 복잡한 데이터 처리 질의를 표현할 수 있다.
